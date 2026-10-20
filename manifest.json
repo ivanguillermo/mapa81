@@ -1,0 +1,10 @@
+{
+  "name": "Mapa 81",
+  "short_name": "Mapa 81",
+  "description": "Organiza un objetivo central en ocho subplanes y 64 casillas.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#173b68",
+  "icons": []
+}
