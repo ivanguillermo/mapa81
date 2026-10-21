@@ -1,17 +1,33 @@
+const GEMINI_API_URL="https://script.google.com/macros/s/AKfycby1lrdnjhv_-p0zHnAeYIqu9QUJvCa1NiCGU_BV5WkIlkmzsyniokLOk8_k6O3BDU7C/exec";
+
 const $=s=>document.querySelector(s),KEY="mapa81-v1",colors=["#3678cf","#df5146","#e9b51b","#299b61","#28b7bf","#f0781c","#9875bf","#d4a0b5"];
+
 let project=null,active=0,showDesc=true,mode="",suggestions=[];
+
 const blankSlot=()=>({title:"",description:"",done:false}),blankPlan=()=>({title:"",description:"",slots:Array.from({length:8},blankSlot)});
+
 const blankProject=()=>({projectTitle:"",mapTitle:"",centralTerm:"",centralDescription:"",plans:Array.from({length:8},blankPlan)});
+
 const esc=s=>String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
 function toast(t){$("#toast").textContent=t;$("#toast").classList.add("show");setTimeout(()=>$("#toast").classList.remove("show"),2300)}
+
 function save(msg=false){if(!project)return;localStorage.setItem(KEY,JSON.stringify(project));$("#saveStatus").textContent="Guardado · "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});progress();renderButtons();renderMap();if(msg)toast("Proyecto guardado en este navegador.")}
+
 function progress(){let n=project.plans.reduce((a,p)=>a+p.slots.filter(s=>s.done).length,0);$("#progressText").textContent=`${n} de 64 casillas completadas`,$("#progressPercent").textContent=Math.round(n/64*100)+"%";$("#progressBar").style.width=n/64*100+"%"}
+
 function header(){ $("#headingTitle").textContent=project.projectTitle;$("#headingDescription").textContent=project.centralDescription;$("#mapEyebrow").textContent=project.mapTitle||"TU MAPA"}
+
 function startWorkspace(){ $("#setup").hidden=true;$("#workspace").hidden=false;header();renderButtons();renderEditor();renderMap();progress()}
+
 function renderButtons(){ $("#planButtons").innerHTML=project.plans.map((p,i)=>`<button class="plan-button ${i===active?"active":""}" data-p="${i}"><span class="num">${i+1}</span><span class="name">${esc(p.title||"Subplan "+(i+1))}</span><span class="count">${p.slots.filter(s=>s.done).length}/8</span></button>`).join("");$("#planButtons").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{active=+b.dataset.p;renderButtons();renderEditor()})}
+
 function renderEditor(){const p=project.plans[active];$(".empty").hidden=true;$("#planEditor").hidden=false;$("#planNumber").textContent=`SUBPLAN ${active+1} DE 8`;$("#planHeading").textContent=p.title||"Subplan "+(active+1);$("#planTitle").value=p.title;$("#planDescription").value=p.description;$("#planStatus").textContent=p.slots.filter(s=>s.done).length+"/8 listas";
-$("#slots").innerHTML=p.slots.map((s,i)=>`<article class="slot ${s.done?"done":""}" data-s="${i}"><div class="slot-top"><span>CASILLA ${i+1}</span><label><input type="checkbox" data-f="done" ${s.done?"checked":""}> Lista</label></div><label>Título<input data-f="title" value="${esc(s.title)}" placeholder="¿Qué hay que hacer?"></label><label>Descripción<textarea data-f="description" rows="3" placeholder="¿En qué consiste este paso?">${esc(s.description)}</textarea></label></article>`).join("");
-$("#slots").querySelectorAll(".slot").forEach(card=>card.querySelectorAll("[data-f]").forEach(el=>el.addEventListener(el.type==="checkbox"?"change":"input",()=>{let k=el.dataset.f,s=p.slots[+card.dataset.s];s[k]=k==="done"?el.checked:el.value;card.classList.toggle("done",s.done);$("#planStatus").textContent=p.slots.filter(x=>x.done).length+"/8 listas";save()})))}
+
+                        $("#slots").innerHTML=p.slots.map((s,i)=>`<article class="slot ${s.done?"done":""}" data-s="${i}"><div class="slot-top"><span>CASILLA ${i+1}</span><label><input type="checkbox" data-f="done" ${s.done?"checked":""}> Lista</label></div><label>Título<input data-f="title" value="${esc(s.title)}" placeholder="¿Qué hay que hacer?"></label><label>Descripción<textarea data-f="description" rows="3" placeholder="¿En qué consiste este paso?">${esc(s.description)}</textarea></label></article>`).join("");
+
+                        $("#slots").querySelectorAll(".slot").forEach(card=>card.querySelectorAll("[data-f]").forEach(el=>el.addEventListener(el.type==="checkbox"?"change":"input",()=>{let k=el.dataset.f,s=p.slots[+card.dataset.s];s[k]=k==="done"?el.checked:el.value;card.classList.toggle("done",s.done);$("#planStatus").textContent=p.slots.filter(x=>x.done).length+"/8 listas";save()})))}
+
 function renderMap(){
  const planAtBlock=[[0,1,2],[7,null,3],[6,5,4]];
  const mirrorAtCell=[[0,1,2],[7,null,3],[6,5,4]];
@@ -75,14 +91,117 @@ $("#planDescription").oninput=e=>{project.plans[active].description=e.target.val
 $("#saveProject").onclick=()=>save(true);$("#newProject").onclick=()=>{if(project&&!confirm("¿Crear otro proyecto? El actual seguirá guardado en este navegador."))return;project=null;$("#workspace").hidden=true;$("#setup").hidden=false;$("#projectForm").reset()};
 $("#start").onclick=()=>$("#planTitle").focus();$("#toggleDescriptions").onclick=()=>{showDesc=!showDesc;$("#toggleDescriptions").textContent=showDesc?"Ocultar descripciones":"Mostrar descripciones";renderMap()};
 $("#suggestPlans").onclick=()=>askAI("plans");$("#suggestSlots").onclick=()=>askAI("slots");
-async function askAI(m){mode=m;let p=project.plans[active];$("#dialogTitle").textContent=m==="plans"?"Ideas para los ocho subplanes":"Ideas para las ocho casillas";$("#dialogIntro").textContent=m==="plans"?"Propuestas de áreas distintas para alcanzar tu objetivo.":"Propuestas concretas para desarrollar este subplan.";$("#suggestionList").innerHTML="<p>Consultando Gemini…</p>";$("#suggestions").showModal();$("#applySuggestions").disabled=true;
-try{let r=await fetch("/api/suggest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode,project:{title:project.projectTitle,centralTerm:project.centralTerm,centralDescription:project.centralDescription},plan:m==="slots"?p:null,allPlans:project.plans.map(x=>({title:x.title,description:x.description}))})});let d=await r.json();if(!r.ok)throw Error(d.error||"Error al consultar el servidor");suggestions=(d.suggestions||[]).slice(0,8);$("#suggestionList").innerHTML=suggestions.map((s,i)=>`<label class="suggestion"><input type="checkbox" data-i="${i}" checked><span><strong>${esc(s.title)}</strong><p>${esc(s.description)}</p></span></label>`).join("");$("#applySuggestions").disabled=false}
-catch(err){suggestions=[];$("#suggestionList").innerHTML=`<p class="muted">No se pudo generar la respuesta: ${esc(err.message)}. Puedes seguir editando el mapa sin IA; revisa el README para configurar Gemini.</p>`}}
+
+
+function requestGeminiJSONP(payload) {
+  return new Promise((resolve, reject) => {
+    const callback = "mapa81Callback_" +
+      Date.now() + "_" + Math.floor(Math.random() * 1000000);
+
+    const script = document.createElement("script");
+    let finished = false;
+
+    function cleanup() {
+      if (finished) return;
+      finished = true;
+      delete window[callback];
+      script.remove();
+      clearTimeout(timer);
+    }
+
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("Tiempo de espera agotado. Inténtalo de nuevo."));
+    }, 30000);
+
+    window[callback] = data => {
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("No se pudo conectar con Apps Script."));
+    };
+
+    script.src = GEMINI_API_URL +
+      "?callback=" + encodeURIComponent(callback) +
+      "&payload=" + encodeURIComponent(JSON.stringify(payload));
+
+    document.head.appendChild(script);
+  });
+}
+
+async function askAI(m) {
+  mode = m;
+  const p = project.plans[active];
+
+  $("#dialogTitle").textContent =
+    m === "plans"
+      ? "Ideas para los ocho subplanes"
+      : "Ideas para las ocho casillas";
+
+  $("#dialogIntro").textContent =
+    m === "plans"
+      ? "Propuestas de áreas distintas para alcanzar tu objetivo."
+      : "Propuestas concretas para desarrollar este subplan.";
+
+  $("#suggestionList").innerHTML = "<p>Consultando Gemini…</p>";
+  $("#suggestions").showModal();
+  $("#applySuggestions").disabled = true;
+
+  try {
+    const data = await requestGeminiJSONP({
+      mode,
+      project: {
+        title: project.projectTitle,
+        centralTerm: project.centralTerm,
+        centralDescription: project.centralDescription
+      },
+      plan: m === "slots" ? p : null,
+      allPlans: project.plans.map(x => ({
+        title: x.title,
+        description: x.description
+      }))
+    });
+
+    if (data.error) throw new Error(data.error);
+
+    suggestions = (data.suggestions || []).slice(0, 8);
+
+    if (!suggestions.length) {
+      throw new Error("Gemini no devolvió sugerencias.");
+    }
+
+    $("#suggestionList").innerHTML = suggestions.map((s, i) =>
+      `<label class="suggestion">
+        <input type="checkbox" data-i="${i}" checked>
+        <span><strong>${esc(s.title)}</strong>
+        <p>${esc(s.description)}</p></span>
+      </label>`
+    ).join("");
+
+    $("#applySuggestions").disabled = false;
+
+  } catch (err) {
+    suggestions = [];
+    $("#suggestionList").innerHTML =
+      `<p class="muted">No se pudieron generar las sugerencias: ${
+        esc(err.message)
+      }. Puedes seguir editando el mapa sin IA.</p>`;
+  }
+}
+
+
 $("#closeSuggestions").onclick=$("#cancelSuggestions").onclick=()=>$("#suggestions").close();
 $("#applySuggestions").onclick=()=>{let chosen=[...$("#suggestionList").querySelectorAll("[data-i]:checked")].map(el=>suggestions[+el.dataset.i]);if(mode==="plans"){let empty=project.plans.map((p,i)=>!p.title.trim()?i:-1).filter(i=>i>=0);chosen.forEach((s,j)=>{if(empty[j]!==undefined){project.plans[empty[j]].title=s.title;project.plans[empty[j]].description=s.description}});renderButtons();renderEditor()}else{let p=project.plans[active],empty=p.slots.map((s,i)=>!s.title.trim()?i:-1).filter(i=>i>=0);chosen.forEach((s,j)=>{if(empty[j]!==undefined){p.slots[empty[j]].title=s.title;p.slots[empty[j]].description=s.description}});renderEditor()}save(true);$("#suggestions").close();toast("Sugerencias añadidas; puedes editarlas.")};
+
 function slug(s){return(s||"mapa").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"mapa"}
+
 function svgEscape(s){return esc(s).replace(/&#39;/g,"&apos;")}
+
 function svgText(s,x,y,size,color,max=32){let words=String(s||"").split(/\s+/),lines=[],line="";for(let w of words){if((line+" "+w).trim().length>max){lines.push(line);line=w}else line=(line+" "+w).trim()}if(line)lines.push(line);return lines.slice(0,5).map((l,i)=>`<text x="${x}" y="${y+i*(size+8)}" font-size="${size}" fill="${color}">${svgEscape(l)}</text>`).join("")}
+
 function makeSvg(){
  const W=1800,pad=28,gap=5,cw=(W-pad*2-gap*8)/9,ch=cw,planAtBlock=[[0,1,2],[7,null,3],[6,5,4]],around=[[0,0],[0,1],[0,2],[1,2],[2,2],[2,1],[2,0],[1,0]];
  let body="";
