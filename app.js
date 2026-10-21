@@ -1,4 +1,4 @@
-const GEMINI_API_URL="https://script.google.com/macros/s/AKfycby1lrdnjhv_-p0zHnAeYIqu9QUJvCa1NiCGU_BV5WkIlkmzsyniokLOk8_k6O3BDU7C/exec";
+const GEMINI_API_URL="https://script.google.com/macros/s/AKfycbxDUQ6pgNvjlJCU3B-Tpe4jVyI1q7-E5crac_cS2VSbc2r5rG35Y-xl4K8MGA4iMrcl/exec";
 
 const $=s=>document.querySelector(s),KEY="mapa81-v1",colors=["#3678cf","#df5146","#e9b51b","#299b61","#28b7bf","#f0781c","#9875bf","#d4a0b5"];
 
